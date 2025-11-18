@@ -201,6 +201,43 @@ class NewsFetcher:
         # Sort by date and return top 20
         unique_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
         return unique_articles[:20]
+    def fetch_bitcoin_news(self) -> List[Dict]:
+        """
+        Specialized method to fetch Bitcoin and cryptocurrency news
+        
+        Returns:
+            List of Bitcoin-related news articles
+        """
+        bitcoin_queries = [
+            "Bitcoin",
+            "BTC",
+            "cryptocurrency",
+            "crypto",
+            "blockchain",
+            "digital currency",
+            "Bitcoin price",
+            "Bitcoin mining"
+        ]
+        
+        all_bitcoin_articles = []
+        
+        for query in bitcoin_queries:
+            articles = self.fetch_all_news(query)
+            all_bitcoin_articles.extend(articles)
+        
+        # Remove duplicates based on title
+        seen_titles = set()
+        unique_articles = []
+        
+        for article in all_bitcoin_articles:
+            title = article.get('title', '').lower()
+            if title not in seen_titles:
+                seen_titles.add(title)
+                unique_articles.append(article)
+        
+        # Sort by date and return top 20
+        unique_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
+        return unique_articles[:20]
 
 
 def main():
