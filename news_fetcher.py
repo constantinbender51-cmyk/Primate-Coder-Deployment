@@ -193,14 +193,18 @@ class NewsFetcher:
     
     def fetch_major_news_2018_to_today(self) -> List[Dict]:
         """
-        Fetch major news from 2018 to today
+        Fetch major news from 2018 to today with even distribution across years
         
         Returns:
-            List of major news articles from 2018 to present
+            List of major news articles from 2018 to present (100+ articles)
         """
-        # Define date range
-        from_date = "2018-01-01"
-        to_date = datetime.now().strftime("%Y-%m-%d")
+        current_year = datetime.now().year
+        years = list(range(2018, current_year + 1))
+        
+        # Calculate target articles per year (at least 20 per year for 100+ total)
+        target_per_year = max(20, 100 // len(years))
+        
+        all_major_articles = []
         
         # Major news queries covering different categories
         major_news_queries = [
@@ -218,17 +222,45 @@ class NewsFetcher:
             "science",
             "artificial intelligence",
             "space",
-            "entertainment"
+            "entertainment",
+            "sports",
+            "environment",
+            "education",
+            "innovation",
+            "global economy"
         ]
         
-        all_major_articles = []
+        # Fetch articles for each year
+        for year in years:
+            print(f"\nFetching news for year {year}...")
+            year_articles = []
+            
+            # Define date range for this year
+            from_date = f"{year}-01-01"
+            to_date = f"{year}-12-31"
+            
+            # Try different queries until we get enough articles for this year
+            for query in major_news_queries:
+                if len(year_articles) >= target_per_year:
+                    break
+                    
+                print(f"  Querying: {query}")
+                articles = self.fetch_all_news(query, from_date, to_date)
+                
+                # Filter out duplicates within this year
+                seen_titles = set(article.get('title', '').lower() for article in year_articles)
+                for article in articles:
+                    if len(year_articles) >= target_per_year:
+                        break
+                    title = article.get('title', '').lower()
+                    if title and title not in seen_titles:
+                        year_articles.append(article)
+                        seen_titles.add(title)
+            
+            print(f"  Collected {len(year_articles)} articles for {year}")
+            all_major_articles.extend(year_articles)
         
-        for query in major_news_queries:
-            print(f"Fetching news for: {query}")
-            articles = self.fetch_all_news(query, from_date, to_date)
-            all_major_articles.extend(articles)
-        
-        # Remove duplicates based on title
+        # Remove duplicates across all years
         seen_titles = set()
         unique_articles = []
         
@@ -238,128 +270,68 @@ class NewsFetcher:
                 seen_titles.add(title)
                 unique_articles.append(article)
         
-        # Sort by date and return 20-50 articles
+        # Sort by date and ensure we have at least 100 articles
         unique_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
-        return unique_articles[:50]
-    
-    def fetch_100_plus_news_evenly_distributed(self) -> List[Dict]:
-        """
-        Fetch 100+ news articles evenly distributed among years from 2018 to today
         
-        Returns:
-            List of 100+ news articles evenly distributed by year
-        """
-        current_year = datetime.now().year
-        years = list(range(2018, current_year + 1))
+        print(f"\nTotal unique articles collected: {len(unique_articles)}")
         
-        # Calculate target articles per year (aim for 100+ total)
-        target_total = 120  # Aim for 120 to ensure we get at least 100
-        articles_per_year = max(20, target_total // len(years))
-        
-        print(f"Fetching {articles_per_year} articles per year from {years[0]} to {years[-1]}")
-        
-        all_articles = []
-        
-        for year in years:
-            print(f"\nFetching articles for year {year}...")
-            
-            # Define date range for the year
-            from_date = f"{year}-01-01"
-            to_date = f"{year}-12-31"
-            
-            if year == current_year:
-                to_date = datetime.now().strftime("%Y-%m-%d")
-            
-            # Fetch articles for this year
-            year_articles = []
-            
-            # Try multiple queries to get enough articles
-            queries = [
-                "business",
-                "technology",
-                "economy",
-                "politics",
-                "world news",
-                "finance",
-                "stock market",
-                "cryptocurrency",
-                "climate change",
-                "health",
-                "science"
+        # If we don't have enough articles, try to fetch more from recent years
+        if len(unique_articles) < 100:
+            print("Fetching additional articles to reach 100+...")
+            additional_queries = [
+                "technology news",
+                "business news",
+                "financial news",
+                "world events",
+                "major announcements"
             ]
             
-            for query in queries:
-                if len(year_articles) >= articles_per_year:
+            # Focus on recent years for additional articles
+            recent_years = years[-3:]  # Last 3 years
+            
+            for year in recent_years:
+                if len(unique_articles) >= 100:
                     break
                     
-                print(f"  Query: {query}")
-                articles = self.fetch_all_news(query, from_date, to_date)
-                
-                # Filter out duplicates within this year
-                for article in articles:
-                    title = article.get('title', '').lower()
-                    if title and title not in [a.get('title', '').lower() for a in year_articles]:
-                        year_articles.append(article)
-                        
-                        if len(year_articles) >= articles_per_year:
-                            break
-            
-            # If we didn't get enough articles, try more general queries
-            if len(year_articles) < articles_per_year:
-                print(f"  Getting additional articles for {year}...")
-                additional_queries = ["news", "breaking news", "major events", "headlines"]
+                from_date = f"{year}-01-01"
+                to_date = f"{year}-12-31"
                 
                 for query in additional_queries:
-                    if len(year_articles) >= articles_per_year:
+                    if len(unique_articles) >= 100:
                         break
                         
                     articles = self.fetch_all_news(query, from_date, to_date)
+                    seen_titles = set(article.get('title', '').lower() for article in unique_articles)
+                    
                     for article in articles:
+                        if len(unique_articles) >= 100:
+                            break
                         title = article.get('title', '').lower()
-                        if title and title not in [a.get('title', '').lower() for a in year_articles]:
-                            year_articles.append(article)
-                            
-                            if len(year_articles) >= articles_per_year:
-                                break
-            
-            # Take the required number of articles for this year
-            year_articles = year_articles[:articles_per_year]
-            all_articles.extend(year_articles)
-            print(f"  Collected {len(year_articles)} articles for {year}")
+                        if title and title not in seen_titles:
+                            unique_articles.append(article)
+                            seen_titles.add(title)
         
-        # Remove any remaining duplicates across years
-        seen_titles = set()
-        final_articles = []
+        # Final sort by date
+        unique_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
         
-        for article in all_articles:
-            title = article.get('title', '').lower()
-            if title and title not in seen_titles:
-                seen_titles.add(title)
-                final_articles.append(article)
+        print(f"Final article count: {len(unique_articles)}")
         
-        # Sort by date (newest first)
-        final_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
-        
-        print(f"\nTotal articles collected: {len(final_articles)}")
-        
-        # Verify distribution by year
-        year_distribution = {}
-        for article in final_articles:
+        # Show distribution by year
+        year_counts = {}
+        for article in unique_articles:
             published_at = article.get('published_at', '')
             if published_at:
                 try:
-                    if 'T' in published_at:
-                        date_obj = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
-                    else:
-                        date_obj = datetime.fromisoformat(published_at)
-                    year = date_obj.year
-                    year_distribution[year] = year_distribution.get(year, 0) + 1
+                    year = published_at[:4]
+                    year_counts[year] = year_counts.get(year, 0) + 1
                 except:
                     pass
         
-        print("Year distribution:", dict(sorted(year_distribution.items())))
+        print("\nArticle distribution by year:")
+        for year in sorted(year_counts.keys()):
+            print(f"  {year}: {year_counts[year]} articles")
         
-        return final_articles
+        return unique_articles
     
     def save_news_to_csv(self, articles: List[Dict], filename: str = "major_news_2018_to_today.csv") -> str:
         """
@@ -436,11 +408,12 @@ def create_web_server():
             <div class="container">
                 <h1>Major News Archive (2018 - Today)</h1>
                 <div class="info">
-                    <p>This archive contains major news articles from 2018 to today, collected from multiple sources including The Guardian, Reddit, and NewsAPI.</p>
+                    <p>This archive contains 100+ major news articles from 2018 to today, evenly distributed across years.</p>
                     <p>The CSV file includes articles sorted by date with titles, sources, descriptions, and URLs.</p>
+                    <p>Articles are collected from multiple sources including The Guardian, Reddit, and NewsAPI.</p>
                 </div>
                 <a href="/download" class="download-btn">Download CSV File</a>
-                <p><strong>Note:</strong> The file contains 100+ major news articles evenly distributed among years from 2018 to today.</p>
+                <p><strong>Note:</strong> The file contains 100+ major news articles from various categories including politics, economy, technology, business, and more.</p>
             </div>
         </body>
         </html>
@@ -452,7 +425,7 @@ def create_web_server():
         csv_file = "major_news_2018_to_today.csv"
         if not os.path.exists(csv_file):
             fetcher = NewsFetcher()
-            articles = fetcher.fetch_100_plus_news_evenly_distributed()
+            articles = fetcher.fetch_major_news_2018_to_today()
             fetcher.save_news_to_csv(articles, csv_file)
         
         return send_file(csv_file, as_attachment=True)
@@ -463,13 +436,14 @@ def create_web_server():
 def main():
     """Main function to fetch news and start web server"""
     print("Starting Major News Fetcher (2018-Today)...")
+    print("Fetching 100+ articles evenly distributed across years...")
     
     # Initialize fetcher
     fetcher = NewsFetcher()
     
-    # Fetch 100+ news articles evenly distributed among years
-    print("Fetching 100+ news articles evenly distributed among years from 2018 to today...")
-    articles = fetcher.fetch_100_plus_news_evenly_distributed()
+    # Fetch major news from 2018 to today
+    print("Fetching major news from 2018 to today...")
+    articles = fetcher.fetch_major_news_2018_to_today()
     
     # Save to CSV
     print(f"Saving {len(articles)} articles to CSV...")
