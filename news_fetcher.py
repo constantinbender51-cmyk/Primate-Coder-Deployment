@@ -13,7 +13,7 @@ class NewsFetcher:
         """
         self.api_key = api_key
         
-    def fetch_news_api(self, query: str = "technology", language: str = "en") -> List[Dict]:
+    def fetch_news_api(self, query: str = "investment", language: str = "en") -> List[Dict]:
         """
         Fetch news from NewsAPI (requires free API key from newsapi.org)
         
@@ -29,10 +29,11 @@ class NewsFetcher:
             
         url = f"https://newsapi.org/v2/everything"
         params = {
-            'q': query,
+            'q': f"{query} OR funding OR venture capital OR startup investment OR M&A OR IPO",
             'language': language,
             'apiKey': self.api_key,
-            'pageSize': 10
+            'pageSize': 15,
+            'sortBy': 'publishedAt'
         }
         
         try:
@@ -55,7 +56,7 @@ class NewsFetcher:
         except requests.exceptions.RequestException as e:
             return [{"error": f"Failed to fetch from NewsAPI: {str(e)}"}]
     
-    def fetch_guardian(self, query: str = "technology") -> List[Dict]:
+    def fetch_guardian(self, query: str = "investment") -> List[Dict]:
         """
         Fetch news from The Guardian API (free, no API key required)
         
@@ -67,10 +68,11 @@ class NewsFetcher:
         """
         url = "https://content.guardianapis.com/search"
         params = {
-            'q': query,
+            'q': f"{query} funding venture capital startup",
             'show-fields': 'headline,trailText,webUrl,publication',
             'api-key': self.api_key if self.api_key else 'test',  # test key works for limited requests
-            'page-size': 10
+            'page-size': 15,
+            'section': 'business'
         }
         
         try:
@@ -94,7 +96,7 @@ class NewsFetcher:
         except requests.exceptions.RequestException as e:
             return [{"error": f"Failed to fetch from The Guardian: {str(e)}"}]
     
-    def fetch_reddit_news(self, subreddit: str = "worldnews", limit: int = 10) -> List[Dict]:
+    def fetch_reddit_news(self, subreddit: str = "investing", limit: int = 15) -> List[Dict]:
         """
         Fetch news from Reddit (public API, no authentication required)
         
@@ -116,7 +118,11 @@ class NewsFetcher:
             articles = []
             for post in data.get('data', {}).get('children', []):
                 post_data = post.get('data', {})
-                if not post_data.get('is_self', True):  # Skip self posts
+                # Filter for investment-related content
+                title = post_data.get('title', '').lower()
+                investment_keywords = ['investment', 'funding', 'venture', 'capital', 'startup', 'ipo', 'acquisition', 'merger', 'fund', 'raise']
+                
+                if any(keyword in title for keyword in investment_keywords):
                     articles.append({
                         'source': 'Reddit',
                         'title': post_data.get('title', ''),
@@ -131,12 +137,12 @@ class NewsFetcher:
         except requests.exceptions.RequestException as e:
             return [{"error": f"Failed to fetch from Reddit: {str(e)}"}]
     
-    def fetch_all_news(self, query: str = "technology") -> List[Dict]:
+    def fetch_all_news(self, query: str = "investment") -> List[Dict]:
         """
-        Fetch news from multiple sources
+        Fetch investment news from multiple sources
         
         Args:
-            query: Search query for news
+            query: Search query for news (default: investment)
             
         Returns:
             Combined list of news articles from all sources
@@ -145,7 +151,8 @@ class NewsFetcher:
         
         # Fetch from multiple sources
         all_articles.extend(self.fetch_guardian(query))
-        all_articles.extend(self.fetch_reddit_news())
+        all_articles.extend(self.fetch_reddit_news("investing"))
+        all_articles.extend(self.fetch_reddit_news("stocks"))
         
         # Only fetch from NewsAPI if API key is provided
         if self.api_key:
@@ -158,20 +165,56 @@ class NewsFetcher:
         valid_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
         
         return valid_articles
+    
+    def fetch_investment_news(self) -> List[Dict]:
+        """
+        Specialized method to fetch major investment news
+        
+        Returns:
+            List of investment-related news articles
+        """
+        investment_queries = [
+            "venture capital funding",
+            "startup investment",
+            "M&A deals",
+            "IPO news",
+            "private equity",
+            "major investments"
+        ]
+        
+        all_investment_articles = []
+        
+        for query in investment_queries:
+            articles = self.fetch_all_news(query)
+            all_investment_articles.extend(articles)
+        
+        # Remove duplicates based on title
+        seen_titles = set()
+        unique_articles = []
+        
+        for article in all_investment_articles:
+            title = article.get('title', '').lower()
+            if title not in seen_titles:
+                seen_titles.add(title)
+                unique_articles.append(article)
+        
+        # Sort by date and return top 20
+        unique_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
+        return unique_articles[:20]
 
 
 def main():
-    """Example usage of the NewsFetcher"""
+    """Example usage of the NewsFetcher for investment news"""
     # Initialize without API key (will use free sources only)
     fetcher = NewsFetcher()
     
     # Or initialize with API key for NewsAPI
     # fetcher = NewsFetcher(api_key="your_newsapi_key_here")
     
-    print("Fetching latest news...")
-    articles = fetcher.fetch_all_news("technology")
+    print("Fetching major investment news...")
+    articles = fetcher.fetch_investment_news()
     
-    print(f"\nFound {len(articles)} articles:")
+    print(f"\nFound {len(articles)} investment articles:")
     print("-" * 80)
     
     for i, article in enumerate(articles, 1):
