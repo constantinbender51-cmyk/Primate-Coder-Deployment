@@ -1,0 +1,1 @@
+web: python news_fetcher.py
