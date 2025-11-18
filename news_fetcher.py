@@ -226,6 +226,23 @@ class NewsFetcher:
             all_bitcoin_articles.extend(articles)
         
         # Remove duplicates based on title
+def fetch_bitcoin_news_example():
+    """Example usage specifically for Bitcoin news"""
+    fetcher = NewsFetcher()
+    
+    print("Fetching Bitcoin and cryptocurrency news...")
+    articles = fetcher.fetch_bitcoin_news()
+    
+    print(f"\nFound {len(articles)} Bitcoin-related articles:")
+    print("=" * 80)
+    
+    for i, article in enumerate(articles, 1):
+        print(f"\n{i}. {article['title']}")
+        print(f"   Source: {article['source']} - {article['source_name']}")
+        print(f"   Description: {article.get('description', 'No description')[:200]}...")
+        print(f"   URL: {article['url']}")
+        print(f"   Published: {article.get('published_at', 'Unknown')}")
+        print("-" * 80)
         seen_titles = set()
         unique_articles = []
         
