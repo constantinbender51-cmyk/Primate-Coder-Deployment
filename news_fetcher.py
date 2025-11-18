@@ -29,7 +29,7 @@ class NewsFetcher:
             
         url = f"https://newsapi.org/v2/everything"
         params = {
-            'q': f"{query} OR funding OR venture capital OR startup investment OR M&A OR IPO",
+            'q': f"{query} OR funding OR venture capital OR startup investment OR M&A OR IPO OR Bitcoin OR cryptocurrency",
             'language': language,
             'apiKey': self.api_key,
             'pageSize': 15,
@@ -68,7 +68,7 @@ class NewsFetcher:
         """
         url = "https://content.guardianapis.com/search"
         params = {
-            'q': f"{query} funding venture capital startup",
+            'q': f"{query} funding venture capital startup Bitcoin cryptocurrency",
             'show-fields': 'headline,trailText,webUrl,publication',
             'api-key': self.api_key if self.api_key else 'test',  # test key works for limited requests
             'page-size': 15,
@@ -120,7 +120,7 @@ class NewsFetcher:
                 post_data = post.get('data', {})
                 # Filter for investment-related content
                 title = post_data.get('title', '').lower()
-                investment_keywords = ['investment', 'funding', 'venture', 'capital', 'startup', 'ipo', 'acquisition', 'merger', 'fund', 'raise']
+                investment_keywords = ['investment', 'funding', 'venture', 'capital', 'startup', 'ipo', 'acquisition', 'merger', 'fund', 'raise', 'bitcoin', 'crypto', 'cryptocurrency', 'btc', 'blockchain']
                 
                 if any(keyword in title for keyword in investment_keywords):
                     articles.append({
@@ -153,6 +153,8 @@ class NewsFetcher:
         all_articles.extend(self.fetch_guardian(query))
         all_articles.extend(self.fetch_reddit_news("investing"))
         all_articles.extend(self.fetch_reddit_news("stocks"))
+        all_articles.extend(self.fetch_reddit_news("Bitcoin"))
+        all_articles.extend(self.fetch_reddit_news("CryptoCurrency"))
         
         # Only fetch from NewsAPI if API key is provided
         if self.api_key:
@@ -201,6 +203,7 @@ class NewsFetcher:
         # Sort by date and return top 20
         unique_articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
         return unique_articles[:20]
+
     def fetch_bitcoin_news(self) -> List[Dict]:
         """
         Specialized method to fetch Bitcoin and cryptocurrency news
@@ -226,23 +229,6 @@ class NewsFetcher:
             all_bitcoin_articles.extend(articles)
         
         # Remove duplicates based on title
-def fetch_bitcoin_news_example():
-    """Example usage specifically for Bitcoin news"""
-    fetcher = NewsFetcher()
-    
-    print("Fetching Bitcoin and cryptocurrency news...")
-    articles = fetcher.fetch_bitcoin_news()
-    
-    print(f"\nFound {len(articles)} Bitcoin-related articles:")
-    print("=" * 80)
-    
-    for i, article in enumerate(articles, 1):
-        print(f"\n{i}. {article['title']}")
-        print(f"   Source: {article['source']} - {article['source_name']}")
-        print(f"   Description: {article.get('description', 'No description')[:200]}...")
-        print(f"   URL: {article['url']}")
-        print(f"   Published: {article.get('published_at', 'Unknown')}")
-        print("-" * 80)
         seen_titles = set()
         unique_articles = []
         
@@ -280,5 +266,26 @@ def main():
         print("-" * 80)
 
 
+def fetch_bitcoin_news_example():
+    """Example usage specifically for Bitcoin news"""
+    fetcher = NewsFetcher()
+    
+    print("Fetching Bitcoin and cryptocurrency news...")
+    articles = fetcher.fetch_bitcoin_news()
+    
+    print(f"\nFound {len(articles)} Bitcoin-related articles:")
+    print("=" * 80)
+    
+    for i, article in enumerate(articles, 1):
+        print(f"\n{i}. {article['title']}")
+        print(f"   Source: {article['source']} - {article['source_name']}")
+        print(f"   Description: {article.get('description', 'No description')[:200]}...")
+        print(f"   URL: {article['url']}")
+        print(f"   Published: {article.get('published_at', 'Unknown')}")
+        print("-" * 80)
+
+
 if __name__ == "__main__":
+    # Uncomment the function you want to run:
     main()
+    # fetch_bitcoin_news_example()
